@@ -29,6 +29,7 @@ import argparse
 import os
 import platform
 import sys
+import copy
 from pathlib import Path
 
 import torch
@@ -76,6 +77,7 @@ def run(
         half=False,  # use FP16 half-precision inference
         dnn=False,  # use OpenCV DNN for ONNX inference
         vid_stride=1,  # video frame-rate stride
+        annotation_path=None,
 ):
     source = str(source)
     save_img = not nosave and not source.endswith('.txt')  # save inference images
@@ -83,6 +85,7 @@ def run(
     is_url = source.lower().startswith(('rtsp://', 'rtmp://', 'http://', 'https://'))
     webcam = source.isnumeric() or source.endswith('.txt') or (is_url and not is_file)
     screenshot = source.lower().startswith('screen')
+    save_path = None
     if is_url and is_file:
         source = check_file(source)  # download
 
@@ -146,7 +149,7 @@ def run(
             s += '%gx%g ' % im.shape[2:]  # print string
             gn = torch.tensor(im0.shape)[[1, 0, 1, 0]]  # normalization gain whwh
             imc = im0.copy() if save_crop else im0  # for save_crop
-            annotator = Annotator(im0, line_width=line_thickness, example=str(names))
+            annotator = Annotator(im0, font_size=1, line_width=line_thickness, example=str(names))
             if len(det):
                 # Rescale boxes from img_size to im0 size
                 det[:, :4] = scale_boxes(im.shape[2:], det[:, :4], im0.shape).round()
@@ -170,6 +173,14 @@ def run(
                         annotator.box_label(xyxy, label, color=colors(c, True))
                     if save_crop:
                         save_one_box(xyxy, imc, file=save_dir / 'crops' / names[c] / f'{p.stem}.jpg', BGR=True)
+                if annotation_path and (save_img or save_crop or view_img):
+                    annotator.text([0, 40], f"#detected: {len(det)}")
+                    anno_file_path = copy.deepcopy(p.name)
+                    with open(os.path.join(annotation_path, anno_file_path.replace(".jpg", ".txt"))) as fp:
+                        for nb_gt, line in enumerate(fp):
+                            pass
+                        nb_gt += 1
+                    annotator.text([0, 80], f"#gt: {nb_gt} (acc: {(1-abs(len(det)-nb_gt)*1.0/nb_gt):.2f})")
 
             # Stream results
             im0 = annotator.result()
@@ -211,6 +222,7 @@ def run(
         LOGGER.info(f"Results saved to {colorstr('bold', save_dir)}{s}")
     if update:
         strip_optimizer(weights[0])  # update model (to fix SourceChangeWarning)
+    return save_path
 
 
 def parse_opt():
@@ -242,6 +254,7 @@ def parse_opt():
     parser.add_argument('--half', action='store_true', help='use FP16 half-precision inference')
     parser.add_argument('--dnn', action='store_true', help='use OpenCV DNN for ONNX inference')
     parser.add_argument('--vid-stride', type=int, default=1, help='video frame-rate stride')
+    parser.add_argument('--annotation_path', type=str, default=None, help='video frame-rate stride')
     opt = parser.parse_args()
     opt.imgsz *= 2 if len(opt.imgsz) == 1 else 1  # expand
     print_args(vars(opt))

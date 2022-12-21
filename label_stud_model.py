@@ -11,6 +11,7 @@ from label_studio_ml.utils import get_image_size, get_single_tag_keys
 
 device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 logger = logging.getLogger(__name__)
+model = torch.hub.load("ultralytics/yolov5", 'custom', path="/home/anhtu/projects/yolov5/checkpoint/best.pt")
 
 
 class ChickDetection(LabelStudioMLBase):
@@ -32,13 +33,9 @@ class ChickDetection(LabelStudioMLBase):
             for label_name, label_attrs in self.labels_attrs.items():
                 for predicted_value in label_attrs.get('predicted_values', '').split(','):
                     self.label_map[predicted_value] = label_name
-        self.model = None
         print("========= DONE LOAD MODEL ========>>>>>>>>")
 
     def predict(self, tasks, **kwargs):
-        self.model = torch.hub.load("ultralytics/yolov5", 'custom',
-                                    path="/home/anhtu/projects/yolov5/checkpoint/best.pt")
-
         print("predict------>>>>>>>>", tasks)
         assert len(tasks) == 1
         results = []
@@ -47,7 +44,7 @@ class ChickDetection(LabelStudioMLBase):
         image_path = self.get_local_path(image_url)
         im = Image.open(image_path)
         img_width, img_height = get_image_size(image_path)
-        pred = self.model([im], size=640)
+        pred = model([im], size=640)
         print("pred =========>>>>>>\n", pred.pandas().xyxy[0])
         for _, row in pred.pandas().xyxy[0].iterrows():
             output_label = self.label_map.get(row['name'], row['name'])
