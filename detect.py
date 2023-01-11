@@ -173,8 +173,8 @@ def run(
                         annotator.box_label(xyxy, label, color=colors(c, True))
                     if save_crop:
                         save_one_box(xyxy, imc, file=save_dir / 'crops' / names[c] / f'{p.stem}.jpg', BGR=True)
+                annotator.text([0, 40], f"#detected: {len(det)}")
                 if annotation_path and (save_img or save_crop or view_img):
-                    annotator.text([0, 40], f"#detected: {len(det)}")
                     anno_file_path = copy.deepcopy(p.name)
                     with open(os.path.join(annotation_path, anno_file_path.replace(".jpg", ".txt"))) as fp:
                         for nb_gt, line in enumerate(fp):

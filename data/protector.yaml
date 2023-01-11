@@ -1,0 +1,6 @@
+train: /usr/src/datasets/train/images
+val: /usr/src/datasets/valid/images
+test: /usr/src/datasets/test/images
+
+nc: 7
+names: ['bicycle', 'bus', 'car', 'motor', 'person', 'truck', 'van']
